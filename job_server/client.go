@@ -8,9 +8,7 @@ import (
     "bytes"
 )
 
-const (
-    CLIENT_ADDRESS = "localhost:8010"
-)
+var CLIENT_ADDRESS string
 
 func clientDispatcher() {
     fmt.Println("Client dispatcher listening on " + CLIENT_ADDRESS)

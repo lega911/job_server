@@ -8,10 +8,7 @@ import (
     "strings"
 )
 
-const (
-    WORKER_ADDRESS = "localhost:8011"
-)
-
+var WORKER_ADDRESS string
 
 var g_chainIndex uint16
 var g_chainIndexMutex sync.Mutex

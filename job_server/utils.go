@@ -46,14 +46,35 @@ func tcpWriteBlock(conn net.Conn, flag byte, data []byte) {
 
 
 func parseArgs() {
+    WORKER_ADDRESS = "localhost:8011"
+    CLIENT_ADDRESS = "localhost:8010"
     LOGGING = false
     COUNTER = false
     for _, k := range os.Args[1:] {
+        if WORKER_ADDRESS == "" {
+            WORKER_ADDRESS = k
+            continue
+        }
+        if CLIENT_ADDRESS == "" {
+            CLIENT_ADDRESS = k
+            continue
+        }
+
         if k == "-log" {
             LOGGING = true
+            continue
         }
         if k == "-counter" {
             COUNTER = true
+            continue
+        }
+        if k == "-worker" {
+            WORKER_ADDRESS = ""
+            continue
+        }
+        if k == "-client" {
+            CLIENT_ADDRESS = ""
+            continue
         }
     }
 }
