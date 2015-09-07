@@ -7,9 +7,10 @@ import (
     "os"
 )
 
+
 func tcpReadBlock(conn net.Conn) (byte, []byte) {
     // read head
-    head := make([]byte, 3)
+    head := make([]byte, 4)
     lenRead, err := conn.Read(head)
     if err == io.EOF {
         return 0, []byte("socket closed")
@@ -18,10 +19,10 @@ func tcpReadBlock(conn net.Conn) (byte, []byte) {
         fmt.Println("Read error: ", err.Error())
         return 0, []byte(err.Error())
     }
-    if lenRead != 3 {
+    if lenRead != 4 {
         panic("Error read head")
     }
-    size := int(head[1]) + int(head[2]) << 8
+    size := int(head[1]) + (int(head[2]) << 8) + (int(head[3]) << 16)
 
     // read body
     body := make([]byte, size)
@@ -68,13 +69,13 @@ func tcpWriteBlock(conn net.Conn, flag byte, data []byte) (int) {
     } else {
         size = len(data)
     }
-    head := []byte{flag, byte(size & 0xff), byte(size >> 8)}
+    head := []byte{flag, byte(size & 0xff), byte((size & 0xff00) >> 8), byte((size & 0xff0000) >> 16)}
     lenWrote, err := conn.Write(head)
     if err != nil {
         fmt.Println("Write head error: ", err.Error())
         return 1
     }
-    if lenWrote != 3 {
+    if lenWrote != 4 {
         fmt.Println("Write head error")
         return 2
     }

@@ -18,7 +18,7 @@ def benchmark_async(rpc):
 
 
 def send_one(rpc):
-    data = b'0123456789' * 100
+    data = b'0123456789' * 12800  # 128k
     result = rpc.call('echo', data)
     print(len(result))
     assert data == result
