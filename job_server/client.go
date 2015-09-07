@@ -31,6 +31,28 @@ func clientDispatcher() {
     }
 }
 
+func getChainIndexByRequest(conn net.Conn, data []byte) (uint16, int) {
+    // chainIndex, error
+    i := bytes.IndexByte(data, 0)
+    if i < 1 {
+        fmt.Println("Wrong block")
+        return 0, 1
+    }
+    key := string(data[:i])
+    chainIndex := g_chainByFn[key]
+    if LOGGING {
+        fmt.Println("Method: ", key, chainIndex)
+    }    
+    if chainIndex < 1 {
+        fmt.Println("Unknown method ", key)
+        if tcpWriteBlock(conn, 17, []byte(key)) != 0 {
+            return 0, 1
+        }
+        return 0, 2
+    }
+    return chainIndex, 0
+}
+
 // Handles incoming requests.
 func clientHandler(conn net.Conn) {
     defer conn.Close()
@@ -38,27 +60,26 @@ func clientHandler(conn net.Conn) {
     counter := int64(0)
 
     for {
+        if COUNTER {
+            counter += 1
+            if counter > 1000 {
+                g_counter <- counter
+                counter = 0
+            }
+        }
+        
         flag, data := tcpReadBlock(conn)
         if flag == 0 {
             fmt.Println("Client disconnected")
             return
         } else if flag == 11 {
-            i := bytes.IndexByte(data, 0)
-            if i < 1 {
-                fmt.Println("Wrong block")
-                return
-            }
-            key := string(data[:i])
-            chainIndex := g_chainByFn[key]
-            if LOGGING {
-                fmt.Println("Method: ", key, chainIndex)
-            }
-            if chainIndex < 1 {
-                fmt.Println("Unknown method ", key)
-                if tcpWriteBlock(conn, 17, []byte(key)) != 0 {
+            chainIndex, err := getChainIndexByRequest(conn, data)
+            if err != 0 {
+                if err == 1 {
                     return
-                }
-                continue
+                } else if err == 2 {
+                    continue
+                }                
             }
 
             wait_worker:
@@ -103,14 +124,38 @@ func clientHandler(conn net.Conn) {
             if tcpWriteBlock(conn, rFlag, response) != 0 {
                 return
             }
-
-            if COUNTER {
-                counter += 1
-                if counter > 1000 {
-                    g_counter <- counter
-                    counter = 0
-                }
+        } else if flag == 13 {
+            chainIndex, err := getChainIndexByRequest(conn, data)
+            if err != 0 {
+                if err == 1 {
+                    return
+                } else if err == 2 {
+                    continue
+                }                
             }
+
+            go func(chainIndex uint16, data []byte) {
+                wait_worker_async:
+                worker := <- g_connByChainIndex[chainIndex]
+                if LOGGING {
+                    fmt.Println("worker accepted")
+                }
+                if tcpWriteBlock(worker, 21, data) != 0 {
+                    fmt.Println("Error write to worker")
+                    goto wait_worker_async
+                }
+                g_connByChainIndex[chainIndex] <- worker
+                if LOGGING {
+                    fmt.Println("worker released")
+                }                
+            }(chainIndex, data)
+
+            if tcpWriteBlock(conn, 20, nil) != 0 {
+                return
+            }            
+        } else {
+            fmt.Println("Error request from client")
+            return
         }
     }
 }

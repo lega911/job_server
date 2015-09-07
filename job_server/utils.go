@@ -62,7 +62,12 @@ func tcpReadBlock(conn net.Conn) (byte, []byte) {
 
 
 func tcpWriteBlock(conn net.Conn, flag byte, data []byte) (int) {
-    size := len(data)
+    var size int
+    if data == nil {
+        size = 0
+    } else {
+        size = len(data)
+    }
     head := []byte{flag, byte(size & 0xff), byte(size >> 8)}
     lenWrote, err := conn.Write(head)
     if err != nil {
@@ -73,14 +78,16 @@ func tcpWriteBlock(conn net.Conn, flag byte, data []byte) (int) {
         fmt.Println("Write head error")
         return 2
     }
-    sent := 0
-    for sent < size {
-        lenWrote, err = conn.Write(data[sent:])
-        if err != nil {
-            fmt.Println("Write error: ", err.Error())
-            return 3
+    if size > 0 {
+        sent := 0
+        for sent < size {
+            lenWrote, err = conn.Write(data[sent:])
+            if err != nil {
+                fmt.Println("Write error: ", err.Error())
+                return 3
+            }
+            sent += lenWrote
         }
-        sent += lenWrote
     }
     return 0
 }

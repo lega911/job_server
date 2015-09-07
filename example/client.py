@@ -6,9 +6,15 @@ import time
 def benchmark(rpc):
     while True:
         result = rpc.call(b'ping', b'data')
-        #print(result)
         if result != b'pong':
             print('Wrong result', result)
+
+
+def benchmark_async(rpc):
+    i = 0
+    while True:
+        rpc.call(b'ping', str(i).encode('utf8'), async=True)
+        i += 1
 
 
 def send_one(rpc):
@@ -21,7 +27,8 @@ def send_one(rpc):
 rpc = jclient.ClientHandler()
 rpc.open('localhost', 8010)
 try:
-    #benchmark(rpc)
-    send_one(rpc)
+    benchmark(rpc)
+    #send_one(rpc)
+    #benchmark_async(rpc)
 finally:
     rpc.close()

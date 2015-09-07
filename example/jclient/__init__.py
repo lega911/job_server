@@ -23,7 +23,7 @@ class BaseHandler(object):
     def close(self):
         self.socket.close()
 
-    def recvAll(self, size):
+    def recvall(self, size):
         left = size
         result = []
         while left:
@@ -55,6 +55,13 @@ class WorkerHandler(BaseHandler):
     def call(self, name, data):
         return self.fn[name](data)
 
+    def recv_name_data(self, size):
+        raw = self.recvall(size)
+        i = raw.find(b'\x00')
+        if i < 0:
+            raise Exception('Protocol error')
+        return raw[:i], raw[i+1:]
+
     def serve(self):
         # 11, size_2b, name, 0, data
         fn = list(self.fn.keys())
@@ -66,40 +73,44 @@ class WorkerHandler(BaseHandler):
         self.socket.sendall(buf)
 
         while True:
-            raw = self.recvAll(3)
+            raw = self.recvall(3)
             raw = struct.unpack('BBB', raw)
             flag, size = raw[0], raw[1] + (raw[2] << 8)
-            assert flag == 15
-            raw = self.recvAll(size)
-            assert len(raw) == size
-            i = raw.find(b'\x00')
-            assert i
-            name = raw[:i]
-            data = raw[i+1:]
-            result_code = b'\x10'
-            try:
-                result = self.call(name, data)
-            except Exception as e:
-                result = str(e).encode('utf8')
-                result_code = b'\x13'
+            if flag == 15:
+                name, data = self.recv_name_data(size)
+                result_code = b'\x10'
+                try:
+                    result = self.call(name, data)
+                except Exception as e:
+                    result = str(e).encode('utf8')
+                    result_code = b'\x13'
 
-            assert len(result) < 0x10000, 'Data is too big'
-            raw = result_code + struct.pack('H', len(result)) + result
-            self.socket.sendall(raw)
+                assert len(result) < 0x10000, 'Data is too big'
+                raw = result_code + struct.pack('H', len(result)) + result
+                self.socket.sendall(raw)
+            elif flag == 21:  # async
+                name, data = self.recv_name_data(size)
+                try:
+                    result = self.call(name, data)
+                except Exception as e:
+                    pass
+            else:
+                raise Exception('Protocol error')
 
 
 class ClientHandler(BaseHandler):
-    def call(self, method, data):
+    def call(self, method, data, *, async=False):
         # 11, size_2b, name, 0, data
         size = len(method) + len(data) + 1
         assert size < 0x10000, 'Data is too big'
-        buf = b'\x0b' + struct.pack('H', size) + method + b'\x00' + data
+        code = b'\x0d' if async else b'\x0b'
+        buf = code + struct.pack('H', size) + method + b'\x00' + data
         self.socket.sendall(buf)
-        raw = self.recvAll(3)
+        raw = self.recvall(3)
         code = raw[0]
         if code in {16, 17, 18, 19}:
             size = raw[1] + (raw[2] << 8)
-            response = self.recvAll(size)
+            response = self.recvall(size)
             if code == 16:
                 return response
             elif code == 17:
@@ -108,5 +119,7 @@ class ClientHandler(BaseHandler):
                 raise Error(response.decode('utf8'))
             elif code == 19:
                 raise WorkerException(response.decode('utf8'))
+        elif code == 20:  # async task was accepted
+            pass
         else:
-            raise Exception('Error block code')
+            raise Exception('Protocol error')
