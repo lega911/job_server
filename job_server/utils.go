@@ -30,6 +30,30 @@ func tcpReadBlock(conn net.Conn) (byte, []byte) {
         panic(err.Error())
     }
     if lenRead != size {
+        body = body[:lenRead]
+        // need read more
+        sizeLeft := size - lenRead
+
+        for sizeLeft > 0 {
+            buf := make([]byte, sizeLeft)
+            lenRead, err = conn.Read(buf)
+
+            if err != nil {
+                if (err == io.EOF) && (lenRead != sizeLeft) {
+                    return 0, nil
+                } else {
+                    fmt.Println("Read error: ", err.Error())
+                    return 0, nil
+                }
+            }
+            body = append(body, buf[:lenRead]...)
+            sizeLeft = sizeLeft - lenRead
+        }
+    }
+
+    // double check
+    if len(body) != size {
+        fmt.Println(len(body), size)
         panic("Error read body")
     }
 
@@ -37,11 +61,28 @@ func tcpReadBlock(conn net.Conn) (byte, []byte) {
 }
 
 
-func tcpWriteBlock(conn net.Conn, flag byte, data []byte) {
+func tcpWriteBlock(conn net.Conn, flag byte, data []byte) (int) {
     size := len(data)
     head := []byte{flag, byte(size & 0xff), byte(size >> 8)}
-    conn.Write(head)
-    conn.Write(data)
+    lenWrote, err := conn.Write(head)
+    if err != nil {
+        fmt.Println("Write head error: ", err.Error())
+        return 1
+    }
+    if lenWrote != 3 {
+        fmt.Println("Write head error")
+        return 2
+    }
+    sent := 0
+    for sent < size {
+        lenWrote, err = conn.Write(data[sent:])
+        if err != nil {
+            fmt.Println("Write error: ", err.Error())
+            return 3
+        }
+        sent += lenWrote
+    }
+    return 0
 }
 
 
