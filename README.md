@@ -40,3 +40,8 @@ rpc.open('localhost', 8010)
 result = rpc.call(b'echo', b'data')  # call a method
 rpc.close()
 ```
+
+### License
+[MIT](http://opensource.org/licenses/MIT)
+
+Copyright (c) 2015 Oleg Nechaev <lega911@gmail.com>
