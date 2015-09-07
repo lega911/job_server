@@ -7,7 +7,6 @@ def ping(data):
 
 
 def echo(data):
-    raise Exception('TEST')
     return data
 
 rpc = jclient.WorkerHandler()

@@ -55,10 +55,13 @@ func clientHandler(conn net.Conn) {
             }
             if chainIndex < 1 {
                 fmt.Println("Unknown method ", key)
-                tcpWriteBlock(conn, 17, []byte(key))
+                if tcpWriteBlock(conn, 17, []byte(key)) != 0 {
+                    return
+                }
                 continue
             }
 
+            wait_worker:
             if LOGGING {
                 fmt.Println("waiting for a worker")
             }
@@ -66,20 +69,22 @@ func clientHandler(conn net.Conn) {
             if LOGGING {
                 fmt.Println("worker accepted")
             }
-            tcpWriteBlock(worker, 15, data)
+            if tcpWriteBlock(worker, 15, data) != 0 {
+                fmt.Println("Error write to worker")
+                goto wait_worker
+            }
 
             rFlag, response := tcpReadBlock(worker)
             if rFlag == 0 {
                 // net error
                 fmt.Println("Error read from worker")
-                tcpWriteBlock(conn, 18, response)
+                if tcpWriteBlock(conn, 18, response) != 0 {
+                    return
+                }
                 continue
             }
-            if (rFlag != 16) && (rFlag != 19) {
-                fmt.Println("Wrong response")
-                tcpWriteBlock(conn, 18, []byte("Wrong response"))
-                continue
-            }
+
+            // push worker back
             go func(c net.Conn) {
                 g_connByChainIndex[chainIndex] <- c
                 if LOGGING {
@@ -87,7 +92,17 @@ func clientHandler(conn net.Conn) {
                 }
             }(worker)
 
-            tcpWriteBlock(conn, rFlag, response)
+            if (rFlag != 16) && (rFlag != 19) {
+                fmt.Println("Wrong response")
+                if tcpWriteBlock(conn, 18, []byte("Wrong response")) != 0 {
+                    return
+                }
+                continue
+            }
+
+            if tcpWriteBlock(conn, rFlag, response) != 0 {
+                return
+            }
 
             if COUNTER {
                 counter += 1
