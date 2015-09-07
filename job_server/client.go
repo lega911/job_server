@@ -54,8 +54,9 @@ func clientHandler(conn net.Conn) {
                 fmt.Println("Method: ", key, chainIndex)
             }
             if chainIndex < 1 {
-                fmt.Println("Unknown method")
-                return
+                fmt.Println("Unknown method ", key)
+                tcpWriteBlock(conn, 17, []byte(key))
+                continue
             }
 
             if LOGGING {
@@ -68,9 +69,16 @@ func clientHandler(conn net.Conn) {
             tcpWriteBlock(worker, 15, data)
 
             rFlag, response := tcpReadBlock(worker)
-            if rFlag != 16 {
+            if rFlag == 0 {
+                // net error
+                fmt.Println("Error read from worker")
+                tcpWriteBlock(conn, 18, response)
+                continue
+            }
+            if (rFlag != 16) && (rFlag != 19) {
                 fmt.Println("Wrong response")
-                return
+                tcpWriteBlock(conn, 18, []byte("Wrong response"))
+                continue
             }
             go func(c net.Conn) {
                 g_connByChainIndex[chainIndex] <- c
@@ -79,7 +87,7 @@ func clientHandler(conn net.Conn) {
                 }
             }(worker)
 
-            tcpWriteBlock(conn, 16, response)
+            tcpWriteBlock(conn, rFlag, response)
 
             if COUNTER {
                 counter += 1

@@ -12,11 +12,11 @@ func tcpReadBlock(conn net.Conn) (byte, []byte) {
     head := make([]byte, 3)
     lenRead, err := conn.Read(head)
     if err == io.EOF {
-        return 0, nil
+        return 0, []byte("socket closed")
     }
     if err != nil {
         fmt.Println("Read error: ", err.Error())
-        return 0, nil
+        return 0, []byte(err.Error())
     }
     if lenRead != 3 {
         panic("Error read head")
@@ -40,10 +40,10 @@ func tcpReadBlock(conn net.Conn) (byte, []byte) {
 
             if err != nil {
                 if (err == io.EOF) && (lenRead != sizeLeft) {
-                    return 0, nil
+                    return 0, []byte("socket closed")
                 } else {
                     fmt.Println("Read error: ", err.Error())
-                    return 0, nil
+                    return 0, []byte(err.Error())
                 }
             }
             body = append(body, buf[:lenRead]...)

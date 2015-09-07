@@ -3,6 +3,18 @@ import socket
 import struct
 
 
+class UnknownMethod(Exception):
+    pass
+
+
+class Error(Exception):
+    pass
+
+
+class WorkerException(Exception):
+    pass
+
+
 class BaseHandler(object):
     def open(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -64,10 +76,15 @@ class WorkerHandler(BaseHandler):
             assert i
             name = raw[:i]
             data = raw[i+1:]
-            result = self.call(name, data)
+            result_code = b'\x10'
+            try:
+                result = self.call(name, data)
+            except Exception as e:
+                result = str(e).encode('utf8')
+                result_code = b'\x13'
 
             assert len(result) < 0x10000, 'Data is too big'
-            raw = b'\x10' + struct.pack('H', len(result)) + result
+            raw = result_code + struct.pack('H', len(result)) + result
             self.socket.sendall(raw)
 
 
@@ -79,7 +96,17 @@ class ClientHandler(BaseHandler):
         buf = b'\x0b' + struct.pack('H', size) + method + b'\x00' + data
         self.socket.sendall(buf)
         raw = self.recvAll(3)
-        assert raw[0] == 16
-        size = raw[1] + (raw[2] << 8)
-        response = self.recvAll(size)
-        return response
+        code = raw[0]
+        if code in {16, 17, 18, 19}:
+            size = raw[1] + (raw[2] << 8)
+            response = self.recvAll(size)
+            if code == 16:
+                return response
+            elif code == 17:
+                raise UnknownMethod(response.decode('utf8'))
+            elif code == 18:
+                raise Error(response.decode('utf8'))
+            elif code == 19:
+                raise WorkerException(response.decode('utf8'))
+        else:
+            raise Exception('Error block code')

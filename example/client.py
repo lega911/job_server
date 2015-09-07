@@ -12,7 +12,7 @@ def benchmark(rpc):
 
 
 def send_one(rpc):
-    data = b'0123456789' * 6400  # 64k
+    data = b'0123456789' * 100
     result = rpc.call(b'echo', data)
     print(len(result))
     assert data == result
@@ -20,8 +20,8 @@ def send_one(rpc):
 
 rpc = jclient.ClientHandler()
 rpc.open('localhost', 8010)
-
-benchmark(rpc)
-#send_one(rpc)
-
-rpc.close()
+try:
+    #benchmark(rpc)
+    send_one(rpc)
+finally:
+    rpc.close()
