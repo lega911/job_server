@@ -5,7 +5,7 @@ import time
 
 def benchmark(rpc):
     while True:
-        result = rpc.call(b'ping', b'data')
+        result = rpc.call('ping', b'data')
         if result != b'pong':
             print('Wrong result', result)
 
@@ -13,13 +13,13 @@ def benchmark(rpc):
 def benchmark_async(rpc):
     i = 0
     while True:
-        rpc.call(b'ping', str(i).encode('utf8'), async=True)
+        rpc.call('ping', str(i).encode('utf8'), async=True)
         i += 1
 
 
 def send_one(rpc):
     data = b'0123456789' * 100
-    result = rpc.call(b'echo', data)
+    result = rpc.call('echo', data)
     print(len(result))
     assert data == result
 

@@ -101,6 +101,7 @@ class WorkerHandler(BaseHandler):
 class ClientHandler(BaseHandler):
     def call(self, method, data, *, async=False):
         # 11, size_2b, name, 0, data
+        method = method.encode('utf8')
         size = len(method) + len(data) + 1
         assert size < 0x10000, 'Data is too big'
         code = b'\x0d' if async else b'\x0b'

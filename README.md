@@ -37,7 +37,7 @@ import jclient
 
 rpc = jclient.ClientHandler()
 rpc.open('localhost', 8010)
-result = rpc.call(b'echo', b'data')  # call a method
+result = rpc.call('echo', b'data')  # call a method
 rpc.close()
 ```
 
