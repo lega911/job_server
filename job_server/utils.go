@@ -20,7 +20,7 @@ func tcpReadBlock(conn net.Conn) (byte, []byte) {
         return 0, []byte(err.Error())
     }
     if lenRead != 4 {
-        panic("Error read head")
+        return 0, []byte("Error read head")
     }
     size := int(head[1]) + (int(head[2]) << 8) + (int(head[3]) << 16)
 
@@ -28,7 +28,7 @@ func tcpReadBlock(conn net.Conn) (byte, []byte) {
     body := make([]byte, size)
     lenRead, err = conn.Read(body)
     if err != nil {
-        panic(err.Error())
+        return 0, []byte("Error read body")
     }
     if lenRead != size {
         body = body[:lenRead]
