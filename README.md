@@ -24,9 +24,8 @@ import jclient
 def echo(data):
     return data
 
-rpc = jclient.WorkerHandler()
+rpc = jclient.WorkerHandler('localhost', 8011)
 rpc.add('echo', echo)  #  attach a method
-rpc.open('localhost', 8011)
 rpc.serve()
 rpc.close()
 ```
@@ -35,8 +34,7 @@ rpc.close()
 ``` python
 import jclient
 
-rpc = jclient.ClientHandler()
-rpc.open('localhost', 8010)
+rpc = jclient.ClientHandler('localhost', 8010)
 result = rpc.call('echo', b'data')  # call a method
 rpc.close()
 ```

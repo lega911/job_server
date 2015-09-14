@@ -9,9 +9,8 @@ def ping(data):
 def echo(data):
     return data
 
-rpc = jclient.WorkerHandler()
+rpc = jclient.WorkerHandler('localhost', 8011)
 rpc.add('ping', ping)
 rpc.add('echo', echo)
-rpc.open('localhost', 8011)
 rpc.serve()
 rpc.close()

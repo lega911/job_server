@@ -24,8 +24,7 @@ def send_one(rpc):
     assert data == result
 
 
-rpc = jclient.ClientHandler()
-rpc.open('localhost', 8010)
+rpc = jclient.ClientHandler('localhost', 8010)
 try:
     benchmark(rpc)
     #send_one(rpc)
