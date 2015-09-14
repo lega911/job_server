@@ -1,6 +1,7 @@
 
 import socket
 import queue
+import asyncio
 
 
 class UnknownMethod(Exception):
@@ -164,3 +165,55 @@ class ClientHandler(object):
         else:
             sock.close()
             raise Exception('Protocol error')
+
+
+class ClientAsyncHandler(object):
+    def __init__(self, host, port, *, loop=None):
+        self.loop = loop or asyncio.get_event_loop()
+        self.host = host
+        self.port = port
+        self.socks = asyncio.Queue()
+
+    @asyncio.coroutine
+    def call(self, method, data, *, async=False):
+        method = method.encode('utf8')
+        size = len(method) + len(data) + 1
+        assert size < 0x1000000, 'Data is too big'
+        code = b'\x0d' if async else b'\x0b'
+        buf = code + int_to_b3(size) + method + b'\x00' + data
+
+        try:
+            reader, writer = self.socks.get_nowait()
+        except asyncio.QueueEmpty:
+            reader, writer = yield from asyncio.open_connection(self.host, self.port, loop=self.loop)
+
+        writer.write(buf)
+
+        raw = yield from reader.read(4)
+        if not raw:
+            # socket eas closed
+            raise Exception('Socket closed')
+        code = raw[0]
+        if code in {16, 17, 18, 19}:
+            size = b3_to_int(raw[1:])
+            response = yield from reader.read(size)
+            assert len(response) == size
+            self.socks.put_nowait((reader, writer))
+            if code == 16:
+                return response
+            elif code == 17:
+                raise UnknownMethod(response.decode('utf8'))
+            elif code == 18:
+                raise Error(response.decode('utf8'))
+            elif code == 19:
+                raise WorkerException(response.decode('utf8'))
+        elif code == 20:  # async task was accepted
+            self.socks.put_nowait((reader, writer))
+        else:
+            self.close()
+            raise Exception('Protocol error')
+
+    def close(self):
+        while not self.socks.empty():
+            reader, writer = self.socks.get_nowait()
+            writer.close()
