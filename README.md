@@ -44,7 +44,6 @@ rpc.close()
 import asyncio
 import jclient
 
-
 @asyncio.coroutine
 def run(loop):
     rpc = jclient.ClientAsyncHandler('localhost', 8010, loop=loop)

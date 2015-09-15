@@ -168,6 +168,23 @@ class ClientHandler(object):
 
 
 class ClientAsyncHandler(object):
+    """
+    Example:
+
+        @asyncio.coroutine
+        def run(loop):
+            rpc = jclient.ClientAsyncHandler('localhost', 8010, loop=loop)
+
+            result = yield from rpc.call('ping', b'data')
+            print(result)
+
+            rpc.close()
+
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(run(loop))
+        loop.close()
+    """
     def __init__(self, host, port, *, loop=None):
         self.loop = loop or asyncio.get_event_loop()
         self.host = host
