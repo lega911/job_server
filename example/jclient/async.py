@@ -102,7 +102,7 @@ class WorkerAsyncHandler(object):
     @asyncio.coroutine
     def call(self, name, data):
         result = self.fn[name](data)
-        if inspect.isgenerator(result) or isinstance(result, asyncio.Future):
+        if inspect.isgenerator(result) or inspect.isawaitable(result) or isinstance(result, asyncio.Future):
             result = yield from result
         return result
 
