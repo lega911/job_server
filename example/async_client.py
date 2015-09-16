@@ -1,11 +1,11 @@
 
 import asyncio
-import jclient
+from jclient.async import ClientAsyncHandler
 
 
 @asyncio.coroutine
 def run(loop):
-    rpc = jclient.ClientAsyncHandler('localhost', 8010, loop=loop)
+    rpc = ClientAsyncHandler('localhost', 8010, loop=loop)
 
     result = yield from rpc.call('ping', b'data')
     print(result)

@@ -1,6 +1,6 @@
 
 import asyncio
-import jclient
+from jclient.async import WorkerAsyncHandler
 
 
 @asyncio.coroutine
@@ -15,7 +15,7 @@ def echo(raw):
 
 @asyncio.coroutine
 def worker(loop):
-    rpc = jclient.WorkerAsyncHandler('localhost', 8011, loop=loop)
+    rpc = WorkerAsyncHandler('localhost', 8011, loop=loop)
     rpc.add('ping', ping)
     rpc.add('echo', echo)
     yield from rpc.serve()

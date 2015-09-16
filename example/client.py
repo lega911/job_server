@@ -1,6 +1,5 @@
 
 import jclient
-import time
 
 
 def benchmark(rpc):

@@ -1,4 +1,9 @@
-### job_server on Go + python client
+### Job server on Go + python client
+
+![Scheme](image.png)
+
+Job server provides a generic application framework to farm out work to other machines or processes that are better suited to do the work. It allows you to do work in parallel, to load balance processing.
+It support python 3, python2.7
 
 ### Compile
 ``` bash
@@ -42,7 +47,7 @@ rpc.close()
 ### Example of python asyncio worker
 ``` python
 import asyncio
-import jclient
+from jclient.async import WorkerAsyncHandler
 
 @asyncio.coroutine
 def ping(raw):
@@ -54,7 +59,7 @@ def echo(raw):
 
 @asyncio.coroutine
 def worker(loop):
-    rpc = jclient.WorkerAsyncHandler('localhost', 8011, loop=loop)
+    rpc = WorkerAsyncHandler('localhost', 8011, loop=loop)
     rpc.add('ping', ping)
     rpc.add('echo', echo)
     yield from rpc.serve()
@@ -67,11 +72,11 @@ loop.close()
 ### Example of python asyncio client
 ``` python
 import asyncio
-import jclient
+from jclient.async import ClientAsyncHandler
 
 @asyncio.coroutine
 def run(loop):
-    rpc = jclient.ClientAsyncHandler('localhost', 8010, loop=loop)
+    rpc = ClientAsyncHandler('localhost', 8010, loop=loop)
 
     result = yield from rpc.call('ping', b'data')
     print(result)
